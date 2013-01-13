@@ -42,15 +42,58 @@
 		const GAME_WIDTH = 250;
 		const GAME_HEIGHT = 250;
 
+		function SnakeBody(x,y) {
+			this.x = x;
+			this.y = y;
+		}
+
+		SnakeBody.prototype.update = function(context,speedX,speedY) {
+			this.clearSquare(context);
+			this.updatePosition(speedX,speedY);
+			this.validateWallsCollision();
+			this.drawSquare(context);
+		}
+
+		SnakeBody.prototype.updatePosition = function(speedX,speedY) {
+			this.y+=speedY * SQUARE_HEIGHT;
+			this.x+=speedX * SQUARE_WIDTH;
+		}
+		
+		SnakeBody.prototype.clearSquare = function(context) {
+			context.clearRect(this.x,this.y,SQUARE_WIDTH,SQUARE_HEIGHT);
+		}
+
+		SnakeBody.prototype.drawSquare = function(context) {
+			context.fillRect(this.x,this.y,SQUARE_WIDTH,SQUARE_HEIGHT);
+		}
+
+		SnakeBody.prototype.validateWallsCollision = function() { 
+			if(this.x > GAME_WIDTH) { 
+				this.x = 0;
+			}
+
+			if(this.y > GAME_HEIGHT) {
+				this.y = 0;
+			}
+
+			if(this.y < 0 ) {
+				this.y = GAME_HEIGHT;
+			}
+
+			if(this.x < 0 ) { 
+				this.x = GAME_WIDTH;
+			}
+		}
+
 		var speedY = 0;
 		var speedX = 0;
-
-		var x = 100;
-		var y = 100;
+		var snakeBodies = new Array();
 
 		function init() { 
 			document.onkeyup = onKeyUp;
-			setInterval(onInterval, 500);
+			snakeBodies.push(new SnakeBody(100,100));
+			snakeBodies.push(new SnakeBody(100 - SQUARE_WIDTH,100));
+			setInterval(onInterval, 100);
 		}
 
 		function onKeyUp(e) { 
@@ -80,50 +123,14 @@
 		}
 
 		function onInterval() {
-			clearSquare();
-			updateInput();
-			validateWallsCollision();
-			drawSquare();
-
-		}
-
-		function validateWallsCollision() { 
-			if(x > GAME_WIDTH) { 
-				x = 0;
-			}
-
-			if(y > GAME_HEIGHT) {
-				y = 0;
-			}
-
-			if( y < 0 ) {
-				y = GAME_HEIGHT;
-			}
-
-			if( x < 0 ) { 
-				x = GAME_WIDTH;
-			}
-		}
-
-		function updateInput() {
-			y+=speedY * SQUARE_HEIGHT;
-			x+=speedX * SQUARE_WIDTH;
-		}
-
-		function clearSquare() {
 			var canvas = document.getElementById('canvas'); 
 			if(canvas.getContext) { 
 				var context = canvas.getContext("2d");
-				context.clearRect(x,y,SQUARE_WIDTH,SQUARE_HEIGHT);
+				snakeBodies.forEach(function(element,index,array) {
+					element.update(context,speedX,speedY);
+				})	
 			}
-		}
-
-		function drawSquare() {
-			var canvas = document.getElementById('canvas'); 
-			if(canvas.getContext) { 
-				var context = canvas.getContext("2d");
-				context.fillRect(x,y,SQUARE_WIDTH,SQUARE_HEIGHT);
-			}
+				
 		}
 
 	</script>
