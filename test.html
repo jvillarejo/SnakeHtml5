@@ -1,0 +1,54 @@
+<html>
+
+	<header>
+		<title>Canvas test</title>
+	</header>
+	<style type="text/css">
+		#container {  
+			width: 100%;
+			height: 100%;
+
+			/* Firefox */
+			display:-moz-box;
+			-moz-box-orient:horizontal;
+			-moz-box-pack:center;
+			-moz-box-align:center;
+
+			/* Safari and Chrome */
+			display:-webkit-box;
+			-webkit-box-orient:horizontal;
+			-webkit-box-pack:center;
+			-webkit-box-align:center;
+
+			display: box;
+			box-pack: center;
+			box-align: center;
+		}
+		
+		canvas { 
+			border: 1px solid black; 
+		}
+	</style>
+	<script type="text/javascript">
+		
+		function draw() {
+			var canvas = document.getElementById('canvas'); 
+			if(canvas.getContext) { 
+				var context = canvas.getContext("2d");
+
+				context.fillStyle = "rgb(200,0,0)";
+				context.fillRect(10,10,55,50);
+
+				context.fillStyle = "rgba(0,0,200,0.5)";
+				context.fillRect(30,30,20,50);
+			}
+
+		}
+	</script>
+	<body onLoad="draw();">
+		<div id="container">
+			<canvas id="canvas" width="250" height="250"></canvas>
+		</div>
+	</body>
+
+</html>
