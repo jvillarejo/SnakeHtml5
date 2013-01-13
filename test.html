@@ -31,21 +31,103 @@
 	</style>
 	<script type="text/javascript">
 		
-		function draw() {
-			var canvas = document.getElementById('canvas'); 
-			if(canvas.getContext) { 
-				var context = canvas.getContext("2d");
+		const UP = 38;
+		const DOWN = 40;
+		const RIGHT = 39;
+		const LEFT = 37;
 
-				context.fillStyle = "rgb(200,0,0)";
-				context.fillRect(10,10,55,50);
+		const SQUARE_WIDTH = 10;
+		const SQUARE_HEIGHT = 10;
 
-				context.fillStyle = "rgba(0,0,200,0.5)";
-				context.fillRect(30,30,20,50);
+		const GAME_WIDTH = 250;
+		const GAME_HEIGHT = 250;
+
+		var speedY = 0;
+		var speedX = 0;
+
+		var x = 100;
+		var y = 100;
+
+		function init() { 
+			document.onkeyup = onKeyUp;
+			setInterval(onInterval, 500);
+		}
+
+		function onKeyUp(e) { 
+			resetSpeed();
+
+			if(e.keyCode == UP) { 
+				speedY = -1;
+			}
+
+			if(e.keyCode == DOWN) { 
+				speedY = 1;
+			}
+
+			if(e.keyCode == LEFT) { 
+				speedX = -1;
+			}
+
+			if(e.keyCode == RIGHT) { 
+				speedX = 1;
 			}
 
 		}
+
+		function resetSpeed() { 
+			speedX = 0;
+			speedY = 0;
+		}
+
+		function onInterval() {
+			clearSquare();
+			updateInput();
+			validateWallsCollision();
+			drawSquare();
+
+		}
+
+		function validateWallsCollision() { 
+			if(x > GAME_WIDTH) { 
+				x = 0;
+			}
+
+			if(y > GAME_HEIGHT) {
+				y = 0;
+			}
+
+			if( y < 0 ) {
+				y = GAME_HEIGHT;
+			}
+
+			if( x < 0 ) { 
+				x = GAME_WIDTH;
+			}
+		}
+
+		function updateInput() {
+			y+=speedY * SQUARE_HEIGHT;
+			x+=speedX * SQUARE_WIDTH;
+		}
+
+		function clearSquare() {
+			var canvas = document.getElementById('canvas'); 
+			if(canvas.getContext) { 
+				var context = canvas.getContext("2d");
+				context.clearRect(x,y,SQUARE_WIDTH,SQUARE_HEIGHT);
+			}
+		}
+
+		function drawSquare() {
+			var canvas = document.getElementById('canvas'); 
+			if(canvas.getContext) { 
+				var context = canvas.getContext("2d");
+				context.fillRect(x,y,SQUARE_WIDTH,SQUARE_HEIGHT);
+			}
+		}
+
 	</script>
-	<body onLoad="draw();">
+	<body onLoad="init()">
 		<div id="container">
 			<canvas id="canvas" width="250" height="250"></canvas>
 		</div>
