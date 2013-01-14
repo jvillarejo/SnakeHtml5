@@ -42,95 +42,150 @@
 		const GAME_WIDTH = 250;
 		const GAME_HEIGHT = 250;
 
-		function SnakeBody(x,y) {
+		function Square(x,y) {
 			this.x = x;
 			this.y = y;
 		}
 
-		SnakeBody.prototype.update = function(context,speedX,speedY) {
-			this.clearSquare(context);
-			this.updatePosition(speedX,speedY);
-			this.validateWallsCollision();
-			this.drawSquare(context);
+		Square.prototype.updatePosition = function(x,y) {
+			this.y=y;
+			this.x=x;
 		}
 
-		SnakeBody.prototype.updatePosition = function(speedX,speedY) {
-			this.y+=speedY * SQUARE_HEIGHT;
-			this.x+=speedX * SQUARE_WIDTH;
+		function SnakeBody(x,y,next) {
+			this.next = next;
+			Square.prototype.constructor.call(this,x,y);
+		}
+
+		SnakeBody.prototype = new Square(); 
+		SnakeBody.prototype.constructor = SnakeBody;
+		SnakeBody.prototype.updatePosition = function(x,y) { 
+			if(this.next != null) {
+				this.next.updatePosition(this.x,this.y);	
+			}
+			Square.prototype.updatePosition.call(this,x,y);
+		}
+
+		function Snake(x,y) { 
+			this.speedY = 0;
+			this.speedX = 0;
+			this.body = new SnakeBody(x,y,null); 
+		}
+
+		Snake.prototype.resetSpeed = function() {
+			this.speedX = 0;
+			this.speedY = 0;
+		}
+
+		Snake.prototype.moveUp = function() {
+			this.resetSpeed();
+			this.speedY = -SQUARE_HEIGHT;
+		}
+
+		Snake.prototype.moveDown = function() {
+			this.resetSpeed();
+			this.speedY = SQUARE_HEIGHT;
+		}
+
+		Snake.prototype.moveLeft = function() {
+			this.resetSpeed();
+			this.speedX = -SQUARE_WIDTH;
+		}
+
+		Snake.prototype.moveRight = function() {
+			this.resetSpeed();
+			this.speedX = SQUARE_WIDTH;
+		}
+
+		Snake.prototype.addBody = function() {
+			this.body = new SnakeBody(this.body,this.body.x,this.body.y);
+		}
+
+		Snake.prototype.update = function() {
+			var nextX = this.body.x + this.speedX;
+			var nextY = this.body.y + this.speedY;
+
+			if(nextX > GAME_WIDTH) {
+				nextX = 0;
+			}
+
+			if(nextX < 0 ) { 
+				nextX = GAME_HEIGHT;
+			}
+
+			if(nextY > GAME_HEIGHT) { 
+				nextY = 0; 
+			}
+
+			if(nextY < 0 ) { 
+				nextY = GAME_HEIGHT;
+			}
+			
+			this.body.updatePosition(nextX, nextY);
 		}
 		
-		SnakeBody.prototype.clearSquare = function(context) {
-			context.clearRect(this.x,this.y,SQUARE_WIDTH,SQUARE_HEIGHT);
-		}
-
-		SnakeBody.prototype.drawSquare = function(context) {
-			context.fillRect(this.x,this.y,SQUARE_WIDTH,SQUARE_HEIGHT);
-		}
-
-		SnakeBody.prototype.validateWallsCollision = function() { 
-			if(this.x > GAME_WIDTH) { 
-				this.x = 0;
-			}
-
-			if(this.y > GAME_HEIGHT) {
-				this.y = 0;
-			}
-
-			if(this.y < 0 ) {
-				this.y = GAME_HEIGHT;
-			}
-
-			if(this.x < 0 ) { 
-				this.x = GAME_WIDTH;
-			}
-		}
-
-		var speedY = 0;
-		var speedX = 0;
-		var snakeBodies = new Array();
+		var snake = null;
 
 		function init() { 
 			document.onkeyup = onKeyUp;
-			snakeBodies.push(new SnakeBody(100,100));
-			snakeBodies.push(new SnakeBody(100 - SQUARE_WIDTH,100));
+			snake = new Snake(100,100);
 			setInterval(onInterval, 100);
 		}
 
 		function onKeyUp(e) { 
-			resetSpeed();
 
 			if(e.keyCode == UP) { 
-				speedY = -1;
+				snake.moveUp();
 			}
 
 			if(e.keyCode == DOWN) { 
-				speedY = 1;
+				snake.moveDown();
 			}
 
 			if(e.keyCode == LEFT) { 
-				speedX = -1;
+				snake.moveLeft();
 			}
 
 			if(e.keyCode == RIGHT) { 
-				speedX = 1;
+				snake.moveRight();
 			}
 
-		}
-
-		function resetSpeed() { 
-			speedX = 0;
-			speedY = 0;
 		}
 
 		function onInterval() {
+			snake.update();
+			draw();
+		}
+
+		function draw() { 
 			var canvas = document.getElementById('canvas'); 
-			if(canvas.getContext) { 
-				var context = canvas.getContext("2d");
-				snakeBodies.forEach(function(element,index,array) {
-					element.update(context,speedX,speedY);
-				})	
+			
+			if(canvas.getContext) {
+				var context = canvas.getContext("2d"); 
+				clearCanvas(context,canvas.width,canvas.height);
+				drawSnake(context, snake.body);
 			}
-				
+		}
+
+		function drawSnake(context,body) {
+			drawSquare(context,body);
+			if(body.next) {
+				drawSnake(context,body.next)
+			}
+		}
+
+		function drawSquare(context,body) {
+			context.fillRect(body.x, body.y, SQUARE_WIDTH, SQUARE_HEIGHT);
+		}
+
+		function clearCanvas(context,canvasWidth,canvasHeight) {
+			// I have lots of transforms right now
+			context.save();
+			context.setTransform(1, 0, 0, 1, 0, 0);
+			// Will always clear the right space
+			context.clearRect(0, 0, canvasWidth,canvasHeight);	
+			context.restore();
+			// Still have my old transforms
 		}
 
 	</script>
