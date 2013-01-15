@@ -43,7 +43,7 @@
 		const GAME_HEIGHT = 250;
 
 		function Square(x,y) {
-			this.x = x;
+			this.x = x; 
 			this.y = y;
 		}
 
@@ -52,13 +52,35 @@
 			this.x=x;
 		}
 
+		Square.prototype.collision = function(that) {
+			return this.intersects(that) || that.intersects(this);
+		}
+
+		Square.prototype.intersects = function(that) {
+			return this.intersectsX(that) && this.intersectsY(that);
+		}		
+
+		Square.prototype.intersectsX = function(that) { 
+			var thisEndX = this.x + SQUARE_WIDTH; 
+			var thatEndX = that.x + SQUARE_WIDTH;
+			
+			return !(thatEndX <= this.x || thisEndX <= that.x);
+		}
+
+		Square.prototype.intersectsY = function(that) { 
+			var thisEndY = this.y + SQUARE_HEIGHT; 
+			var thatEndY = that.y + SQUARE_HEIGHT;
+			
+			return !(thatEndY <= this.y || thisEndY <= that.y);
+		}
+
 		function SnakeBody(x,y,next) {
 			this.next = next;
 			Square.prototype.constructor.call(this,x,y);
 		}
-
 		SnakeBody.prototype = new Square(); 
 		SnakeBody.prototype.constructor = SnakeBody;
+		
 		SnakeBody.prototype.updatePosition = function(x,y) { 
 			if(this.next != null) {
 				this.next.updatePosition(this.x,this.y);	
@@ -70,6 +92,21 @@
 			this.speedY = 0;
 			this.speedX = 0;
 			this.body = new SnakeBody(x,y,null); 
+		}
+
+		Snake.prototype = {
+			get x() {
+				return this.body.x;
+			},
+			get y() {
+				return this.body.y;
+			}
+		}
+
+		Snake.prototype.checkCollision = function(square) {
+			if(this.body.collision(square)) {
+				square.resolveCollision(this);
+			}
 		}
 
 		Snake.prototype.resetSpeed = function() {
@@ -98,7 +135,7 @@
 		}
 
 		Snake.prototype.addBody = function() {
-			this.body = new SnakeBody(this.body,this.body.x,this.body.y);
+			this.body = new SnakeBody(this.body.x,this.body.y,this.body);
 		}
 
 		Snake.prototype.update = function() {
@@ -120,16 +157,44 @@
 			if(nextY < 0 ) { 
 				nextY = GAME_HEIGHT;
 			}
-			
+
 			this.body.updatePosition(nextX, nextY);
+		}
+
+
+		function Coin() {
+			Square.prototype.constructor.call(this);
+			this.resetPosition();
+		}
+		Coin.prototype = new Square();
+		Coin.prototype.constructor = Coin;
+		
+		Coin.prototype.resolveCollision = function(snake) {
+			snake.addBody();
+			this.resetPosition();
+		}
+		
+		Coin.prototype.resetPosition = function() { 
+			this.x = getRandomInt(1,GAME_WIDTH - 1);
+			this.y = getRandomInt(1,GAME_HEIGHT - 1);
 		}
 		
 		var snake = null;
+		var coin = null;
+
+		function getRandomInt(min, max) {
+ 			return Math.floor(Math.random() * (max - min + 1)) + min;
+		}
 
 		function init() { 
 			document.onkeyup = onKeyUp;
 			snake = new Snake(100,100);
+			coin = new Coin();	
 			setInterval(onInterval, 100);
+		}
+
+		function onAddBody() { 
+			snake.addBody();
 		}
 
 		function onKeyUp(e) { 
@@ -154,6 +219,7 @@
 
 		function onInterval() {
 			snake.update();
+			snake.checkCollision(coin);
 			draw();
 		}
 
@@ -164,6 +230,7 @@
 				var context = canvas.getContext("2d"); 
 				clearCanvas(context,canvas.width,canvas.height);
 				drawSnake(context, snake.body);
+				drawSquare(context,coin);
 			}
 		}
 
