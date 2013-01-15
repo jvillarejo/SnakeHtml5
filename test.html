@@ -80,7 +80,6 @@
 		}
 		SnakeBody.prototype = new Square(); 
 		SnakeBody.prototype.constructor = SnakeBody;
-		
 		SnakeBody.prototype.updatePosition = function(x,y) { 
 			if(this.next != null) {
 				this.next.updatePosition(this.x,this.y);	
@@ -92,6 +91,7 @@
 			this.speedY = 0;
 			this.speedX = 0;
 			this.body = new SnakeBody(x,y,null); 
+			this.bodyAddedObservers = [];
 		}
 
 		Snake.prototype = {
@@ -136,6 +136,9 @@
 
 		Snake.prototype.addBody = function() {
 			this.body = new SnakeBody(this.body.x,this.body.y,this.body);
+			this.bodyAddedObservers.forEach(function(item, index, array) {
+				item.call(this, this.body);
+			},this);
 		}
 
 		Snake.prototype.update = function() {
@@ -181,6 +184,9 @@
 		
 		var snake = null;
 		var coin = null;
+		var frameHandler = null;
+		var entities = null;
+		var gameOver = false;
 
 		function getRandomInt(min, max) {
  			return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -189,8 +195,11 @@
 		function init() { 
 			document.onkeyup = onKeyUp;
 			snake = new Snake(100,100);
+			entities = [];
+			snake.bodyAddedObservers.push(addCollisionHandler);
+			snake.bodyAddedObservers.push(addControlledEntity);
 			coin = new Coin();	
-			setInterval(onInterval, 100);
+			frameHandler = setInterval(onInterval, 100);
 		}
 
 		function onAddBody() { 
@@ -217,8 +226,35 @@
 
 		}
 
+		function addControlledEntity(body) {
+			entities.push(body.next);
+		}
+
+		function addCollisionHandler(body) {
+			body.next.resolveCollision = gameOverCollision;
+		}
+
+		function gameOverCollision(item) { 
+			gameOver = true;
+			clearInterval(frameHandler);
+		}
+
+		function drawGameOver(context) {
+			var buffer = document.createElement('canvas');
+			var bufferContext = buffer.getContext("2d");
+			bufferContext.font = "bold 16px Arial";
+			bufferContext.textAlign = 'center';
+  			bufferContext.fillText("GAME OVER", GAME_WIDTH / 2, GAME_HEIGHT / 2);
+  			context.drawImage(buffer,0,0);
+		}
+
 		function onInterval() {
 			snake.update();
+			
+			entities.forEach(function(item, index, array) {
+				snake.checkCollision(item);
+			},this);
+			
 			snake.checkCollision(coin);
 			draw();
 		}
@@ -231,6 +267,10 @@
 				clearCanvas(context,canvas.width,canvas.height);
 				drawSnake(context, snake.body);
 				drawSquare(context,coin);
+				
+				if(gameOver) {
+					drawGameOver(context);
+				}
 			}
 		}
 
