@@ -1,0 +1,305 @@
+<html>
+
+	<header>
+		<title>Canvas test</title>
+	</header>
+	<style type="text/css">
+		#container {  
+			width: 100%;
+			height: 100%;
+
+			/* Firefox */
+			display:-moz-box;
+			-moz-box-orient:horizontal;
+			-moz-box-pack:center;
+			-moz-box-align:center;
+
+			/* Safari and Chrome */
+			display:-webkit-box;
+			-webkit-box-orient:horizontal;
+			-webkit-box-pack:center;
+			-webkit-box-align:center;
+
+			display: box;
+			box-pack: center;
+			box-align: center;
+		}
+		
+		canvas { 
+			border: 1px solid black; 
+		}
+	</style>
+	<script type="text/javascript">
+		
+		const UP = 38;
+		const DOWN = 40;
+		const RIGHT = 39;
+		const LEFT = 37;
+
+		const SQUARE_WIDTH = 10;
+		const SQUARE_HEIGHT = 10;
+
+		const GAME_WIDTH = 250;
+		const GAME_HEIGHT = 250;
+
+		function Square(x,y) {
+			this.x = x; 
+			this.y = y;
+		}
+
+		Square.prototype.updatePosition = function(x,y) {
+			this.y=y;
+			this.x=x;
+		}
+
+		Square.prototype.collision = function(that) {
+			return this.intersects(that) || that.intersects(this);
+		}
+
+		Square.prototype.intersects = function(that) {
+			return this.intersectsX(that) && this.intersectsY(that);
+		}		
+
+		Square.prototype.intersectsX = function(that) { 
+			var thisEndX = this.x + SQUARE_WIDTH; 
+			var thatEndX = that.x + SQUARE_WIDTH;
+			
+			return !(thatEndX <= this.x || thisEndX <= that.x);
+		}
+
+		Square.prototype.intersectsY = function(that) { 
+			var thisEndY = this.y + SQUARE_HEIGHT; 
+			var thatEndY = that.y + SQUARE_HEIGHT;
+			
+			return !(thatEndY <= this.y || thisEndY <= that.y);
+		}
+
+		function SnakeBody(x,y,next) {
+			this.next = next;
+			Square.prototype.constructor.call(this,x,y);
+		}
+		SnakeBody.prototype = new Square(); 
+		SnakeBody.prototype.constructor = SnakeBody;
+		SnakeBody.prototype.updatePosition = function(x,y) { 
+			if(this.next != null) {
+				this.next.updatePosition(this.x,this.y);	
+			}
+			Square.prototype.updatePosition.call(this,x,y);
+		}
+
+		function Snake(x,y) { 
+			this.speedY = 0;
+			this.speedX = 0;
+			this.body = new SnakeBody(x,y,null); 
+			this.bodyAddedObservers = [];
+		}
+
+		Snake.prototype = {
+			get x() {
+				return this.body.x;
+			},
+			get y() {
+				return this.body.y;
+			}
+		}
+
+		Snake.prototype.checkCollision = function(square) {
+			if(this.body.collision(square)) {
+				square.resolveCollision(this);
+			}
+		}
+
+		Snake.prototype.resetSpeed = function() {
+			this.speedX = 0;
+			this.speedY = 0;
+		}
+
+		Snake.prototype.moveUp = function() {
+			this.resetSpeed();
+			this.speedY = -SQUARE_HEIGHT;
+		}
+
+		Snake.prototype.moveDown = function() {
+			this.resetSpeed();
+			this.speedY = SQUARE_HEIGHT;
+		}
+
+		Snake.prototype.moveLeft = function() {
+			this.resetSpeed();
+			this.speedX = -SQUARE_WIDTH;
+		}
+
+		Snake.prototype.moveRight = function() {
+			this.resetSpeed();
+			this.speedX = SQUARE_WIDTH;
+		}
+
+		Snake.prototype.addBody = function() {
+			this.body = new SnakeBody(this.body.x,this.body.y,this.body);
+			this.bodyAddedObservers.forEach(function(item, index, array) {
+				item.call(this, this.body);
+			},this);
+		}
+
+		Snake.prototype.update = function() {
+			var nextX = this.body.x + this.speedX;
+			var nextY = this.body.y + this.speedY;
+
+			if(nextX > GAME_WIDTH) {
+				nextX = 0;
+			}
+
+			if(nextX < 0 ) { 
+				nextX = GAME_HEIGHT;
+			}
+
+			if(nextY > GAME_HEIGHT) { 
+				nextY = 0; 
+			}
+
+			if(nextY < 0 ) { 
+				nextY = GAME_HEIGHT;
+			}
+
+			this.body.updatePosition(nextX, nextY);
+		}
+
+
+		function Coin() {
+			Square.prototype.constructor.call(this);
+			this.resetPosition();
+		}
+		Coin.prototype = new Square();
+		Coin.prototype.constructor = Coin;
+		
+		Coin.prototype.resolveCollision = function(snake) {
+			snake.addBody();
+			this.resetPosition();
+		}
+		
+		Coin.prototype.resetPosition = function() { 
+			this.x = getRandomInt(1,GAME_WIDTH - 1);
+			this.y = getRandomInt(1,GAME_HEIGHT - 1);
+		}
+		
+		var snake = null;
+		var coin = null;
+		var frameHandler = null;
+		var entities = null;
+		var gameOver = false;
+
+		function getRandomInt(min, max) {
+ 			return Math.floor(Math.random() * (max - min + 1)) + min;
+		}
+
+		function init() { 
+			document.onkeyup = onKeyUp;
+			snake = new Snake(100,100);
+			entities = [];
+			snake.bodyAddedObservers.push(addCollisionHandler);
+			snake.bodyAddedObservers.push(addControlledEntity);
+			coin = new Coin();	
+			frameHandler = setInterval(onInterval, 100);
+		}
+
+		function onAddBody() { 
+			snake.addBody();
+		}
+
+		function onKeyUp(e) { 
+
+			if(e.keyCode == UP) { 
+				snake.moveUp();
+			}
+
+			if(e.keyCode == DOWN) { 
+				snake.moveDown();
+			}
+
+			if(e.keyCode == LEFT) { 
+				snake.moveLeft();
+			}
+
+			if(e.keyCode == RIGHT) { 
+				snake.moveRight();
+			}
+
+		}
+
+		function addControlledEntity(body) {
+			entities.push(body.next);
+		}
+
+		function addCollisionHandler(body) {
+			body.next.resolveCollision = gameOverCollision;
+		}
+
+		function gameOverCollision(item) { 
+			gameOver = true;
+			clearInterval(frameHandler);
+		}
+
+		function drawGameOver(context) {
+			var buffer = document.createElement('canvas');
+			var bufferContext = buffer.getContext("2d");
+			bufferContext.font = "bold 16px Arial";
+			bufferContext.textAlign = 'center';
+  			bufferContext.fillText("GAME OVER", GAME_WIDTH / 2, GAME_HEIGHT / 2);
+  			context.drawImage(buffer,0,0);
+		}
+
+		function onInterval() {
+			snake.update();
+			
+			entities.forEach(function(item, index, array) {
+				snake.checkCollision(item);
+			},this);
+			
+			snake.checkCollision(coin);
+			draw();
+		}
+
+		function draw() { 
+			var canvas = document.getElementById('canvas'); 
+			
+			if(canvas.getContext) {
+				var context = canvas.getContext("2d"); 
+				clearCanvas(context,canvas.width,canvas.height);
+				drawSnake(context, snake.body);
+				drawSquare(context,coin);
+				
+				if(gameOver) {
+					drawGameOver(context);
+				}
+			}
+		}
+
+		function drawSnake(context,body) {
+			drawSquare(context,body);
+			if(body.next) {
+				drawSnake(context,body.next)
+			}
+		}
+
+		function drawSquare(context,body) {
+			context.fillRect(body.x, body.y, SQUARE_WIDTH, SQUARE_HEIGHT);
+		}
+
+		function clearCanvas(context,canvasWidth,canvasHeight) {
+			// I have lots of transforms right now
+			context.save();
+			context.setTransform(1, 0, 0, 1, 0, 0);
+			// Will always clear the right space
+			context.clearRect(0, 0, canvasWidth,canvasHeight);	
+			context.restore();
+			// Still have my old transforms
+		}
+
+	</script>
+	<body onLoad="init()">
+		<div id="container">
+			<canvas id="canvas" width="250" height="250"></canvas>
+		</div>
+	</body>
+
+</html>
